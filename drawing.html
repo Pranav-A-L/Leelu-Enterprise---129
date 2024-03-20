@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Shared Canvas</title>
+  <style>
+    #drawing { border: 1px solid black; }
+  </style>
+</head>
+<body>
+  <h3><b>DOODLE PAD</b></h3>
+  <canvas id="drawing" width="800" height="600"></canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const canvas = document.getElementById('drawing');
+    const context = canvas.getContext('2d');
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function draw(x, y, isDrawing) {
+      if (!isDrawing) {
+        return;
+      }
+
+      context.beginPath();
+      context.moveTo(lastX, lastY);
+      context.lineTo(x, y);
+      context.stroke();
+      context.closePath();
+
+      lastX = x;
+      lastY = y;
+    }
+
+    canvas.addEventListener('mousedown', (event) => {
+      drawing = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      draw(event.clientX, event.clientY, false);
+    });
+
+    canvas.addEventListener('mousemove', (event) => {
+      draw(event.clientX, event.clientY, drawing);
+      if (drawing) {
+        socket.emit('drawing', { x: event.clientX, y: event.clientY });
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      drawing = false;
+    });
+
+    socket.on('drawing', (data) => {
+      draw(data.x, data.y, true);
+    });
+  </script>
+</body>
+</html>
